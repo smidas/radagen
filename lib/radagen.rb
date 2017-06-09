@@ -244,7 +244,7 @@ module Radagen
     raise ArgumentError.new 'all values in hash need to be a Gen::Generator' unless vs.all? { |g| gen? g }
 
     fmap(tuple(*vs)) do |vs|
-      ks.zip(vs).to_h
+      Hash[ks.zip(vs)]
     end
   end
 
@@ -261,7 +261,7 @@ module Radagen
   #
   def hash_map(key_gen, value_gen)
     fmap(array(tuple(key_gen, value_gen))) do |tuple_array|
-      tuple_array.to_h
+      Hash[tuple_array]
     end
   end
 
@@ -603,7 +603,7 @@ module Radagen
   #   fixnum_pos.sample(5) #=> [1, 1, 3, 2, 4]
   #
   def fixnum_pos
-    such_that(natural) { |f| f.positive? }
+    such_that(natural) { |f| f > 0 }
   end
 
   # Returns a generator that will return negative fixnums.

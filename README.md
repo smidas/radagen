@@ -6,6 +6,9 @@ Radagen is a psuedo random data generation library for the Ruby language and was
 
 Radagen was greatly influenced by the generator API found in [test.check](https://github.com/clojure/test.check) and shares many of the same naming conventions. In contrast however Radagen attemps to separate the idea of *shrinking* (the simplification of values) from the generators themselves. We will see how well this plays out :)
 
+## Requirements
+- Ruby 2.0+
+
 ## Installation
 
 Add this line to your application's Gemfile:
