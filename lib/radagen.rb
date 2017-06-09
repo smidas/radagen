@@ -192,7 +192,7 @@ module Radagen
   #
   def array(gen, opts={})
     size_gen = sized do |size|
-      min, max = {min: 0, max: size}.merge(opts).fetch_values(:min, :max)
+      min, max = {min: 0, max: size}.merge(opts).values_at(:min, :max)
       raise RangeError.new, "max value (#{max}) needs to be larger than or equal to min value (#{min}), perhaps provide a max value?" unless max >= min
       choose(min, max)
     end

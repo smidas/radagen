@@ -42,7 +42,7 @@ module Radagen
     #   string_ascii.to_enum.take(10).to_a #=> ["", "", ")", "{?", "wE&", "h*hq", "9gm>dG", "9Ljn,(Z", "", "1q7:\\q{"]
     #
     def to_enum(opts={})
-      size_max, seed = {size_max: 300, seed: Random.new_seed}.merge(opts).fetch_values(:size_max, :seed)
+      size_max, seed = {size_max: 300, seed: Random.new_seed}.merge(opts).values_at(:size_max, :seed)
       prng = Random.new(seed)
 
       (0...size_max).cycle.lazy.map do |size|
