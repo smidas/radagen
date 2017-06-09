@@ -177,12 +177,12 @@ describe 'Radagen' do
     end
   end
 
-  it 'can filter values from a generator based on provided predicate with #such_that' do
-    positive_fixnums = such_that(fixnum, 20, &:positive?)
+  it 'can filter values from a gene rator based on provided predicate with #such_that' do
+    positive_fixnums = such_that(fixnum_pos, 20) { |f| f > 4 }
 
     aggregate_failures do
       positive_fixnums.to_enum.take(100).each do |n|
-        expect(n.positive?).to be(true)
+        expect(n).to be > 4
       end
     end
   end
