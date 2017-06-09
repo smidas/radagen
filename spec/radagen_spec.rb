@@ -178,10 +178,10 @@ describe 'Radagen' do
   end
 
   it 'can filter values from a generator based on provided predicate with #such_that' do
-    larger_than_10 = such_that(fixnum, &:positive?)
+    positive_fixnums = such_that(fixnum, 20, &:positive?)
 
     aggregate_failures do
-      larger_than_10.to_enum.take(100).each do |n|
+      positive_fixnums.to_enum.take(100).each do |n|
         expect(n.positive?).to be(true)
       end
     end
