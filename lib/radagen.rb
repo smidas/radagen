@@ -350,11 +350,13 @@ module Radagen
   # @return [Radagen::Generator]
   #
   # @example
-  #   return(["something"]).sample(4) #=> [["something"], ["something"], ["something"], ["something"]]
+  #   identity(["something"]).sample(4) #=> [["something"], ["something"], ["something"], ["something"]]
   #
-  def return(value)
+  def identity(value)
     RG.new { |_, _| value }
   end
+
+  alias :return :identity
 
   # Returns a generator that takes a single element from
   # the passed in collection. Works with object that
@@ -374,7 +376,7 @@ module Radagen
     _coll = coll.to_a
 
     bind(choose(0, _coll.count - 1)) do |i|
-      self.return(_coll.fetch(i))
+      identity(_coll.fetch(i))
     end
   end
 
