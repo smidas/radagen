@@ -1,0 +1,299 @@
+require 'spec_helper'
+require_relative '../lib/radagen'
+
+describe 'Radagen' do
+  include Radagen
+
+  before(:example) do
+    @prng = Random.new
+  end
+
+  it 'has a version number' do
+    expect(Radagen::VERSION).not_to be nil
+  end
+
+  it 'can #choose a random fixnum' do
+    min, max = 4, 30
+    choice = choose(min, max).call(@prng, 40)
+
+    expect(choice).to be_between(min, max)
+  end
+
+  it 'can #choose a random float' do
+    min, max = 3.0, 60.0
+    choice = choose(min, max).call(@prng, 40)
+
+    expect(choice).to be_between(min, max)
+  end
+
+  it 'can expose the size passed to generator with #sized' do
+    gen = sized do |size|
+      cube_size = size ** 3
+      tuple(choose(0, cube_size), Radagen.return(cube_size))
+    end
+
+    aggregate_failures do
+      gen.sample(40).each do |choice, max_size|
+        expect(choice).to be_between(0, max_size)
+      end
+    end
+  end
+
+  it 'can set a size value to a generator using #resize' do
+    seed = Random.new_seed
+
+    str_values = (0..60).to_a.map do |size|
+      resize(string_alphanumeric, 200).call(Random.new(seed), size)
+    end
+
+    hash_values = (0..60).to_a.map do |size|
+      resize(hash_map(symbol, string_ascii), 200).call(Random.new(seed), size)
+    end
+
+    expect(str_values).to all match(str_values.first)
+    expect(hash_values).to all match(hash_values.first)
+  end
+
+  it 'can expose the size value to a function with #scale' do
+    #really a convenience generator for interacting with a size value that will be passed to the provided generator
+    scaled_strs = scale(string_numeric) do |size|
+      size * 5
+    end
+
+    scaled_str = scaled_strs.call(Random.new(223936931316408050451040303833958099796), 10)
+    str = string_numeric.call(Random.new(223936931316408050451040303833958099796), 10)
+
+    expect(scaled_str).to eq('822724257908990748731837278449245821216')
+    expect(str).to eq('8227242')
+  end
+
+  it 'can map over and transform generator values with #fmap' do
+    gen = fmap(Radagen.return(5)) { |v| v * 5 }
+    expect(gen.sample).to all match(25)
+  end
+
+  it 'can pass the results of one generator to another with #bind' do
+    fixnums = not_empty(array(fixnum))
+
+    elem_of_array = bind(fixnums) do |array|
+      tuple(elements(array), Radagen.return(array))
+    end
+
+    aggregate_failures do
+      elem_of_array.to_enum.take(100).each do |elem, array|
+        expect(array).to include(elem)
+      end
+    end
+
+  end
+
+  it 'can produce fixed length arrays with values derived from generators positionally with #tuple' do
+    tuples = tuple(string_alphanumeric, fixnum_pos, hash({:key => string_ascii}))
+
+    aggregate_failures do
+      tuples.to_enum.take(100).each do |str, num, hash|
+        expect(str).to be_instance_of(String)
+        expect(num).to be_instance_of(Fixnum)
+        expect(hash).to be_instance_of(Hash)
+      end
+    end
+  end
+
+  it 'can produce arrays containing values from passed in generator with #array' do
+    arrays = not_empty array(string_ascii)
+
+    aggregate_failures do
+      arrays.to_enum.take(100).each do |array|
+        expect(array).to include a_kind_of(String)
+      end
+    end
+  end
+
+  it 'can produce arrays with min size with #array' do
+    min = 4
+    arrays = array(fixnum, min: min, max: 300)
+
+    aggregate_failures do
+      arrays.to_enum.take(200).each do |array|
+        expect(array.length).to be >= min
+      end
+    end
+  end
+
+
+  it 'can produce arrays with max size with #array' do
+    max = 30
+    arrays = array(fixnum,max: max)
+
+    aggregate_failures do
+      arrays.to_enum.take(200).each do |array|
+        expect(array.length).to be <= max
+      end
+    end
+  end
+
+  it 'can produce sets with min size with #set' do
+    min = 4
+    arrays = set(fixnum, min: min, max: 300)
+
+    aggregate_failures do
+      arrays.to_enum.take(200).each do |set|
+        expect(set.length).to be >= min
+      end
+    end
+  end
+
+  it 'can produce set with max size with #set' do
+    max = 30
+    arrays = set(fixnum, max: max)
+
+    aggregate_failures do
+      arrays.to_enum.take(200).each do |set|
+        expect(set.length).to be <= max
+      end
+    end
+  end
+
+  it 'can produce hashes based on the model hash with #hash' do
+    hashes = not_empty hash({:array => array(fixnum), :string => string_ascii})
+
+    aggregate_failures do
+      hashes.to_enum.take(100).each do |hash|
+        expect(hash.keys).to include(:array, :string)
+        expect(hash[:array]).to be_instance_of(Array)
+        expect(hash[:string]).to be_instance_of(String)
+      end
+    end
+  end
+
+  it 'can produce hashes based on key generator and value generator with #hash_map' do
+    hashes = hash_map(symbol, string_ascii)
+
+    aggregate_failures do
+      hashes.to_enum.take(100).each do |hash|
+        expect(hash.keys).to all be_instance_of(Symbol)
+        expect(hash.values).to all be_instance_of(String)
+      end
+    end
+  end
+
+  it 'can filter values from a generator based on provided predicate with #such_that' do
+    larger_than_10 = such_that(fixnum, &:positive?)
+
+    aggregate_failures do
+      larger_than_10.to_enum.take(100).each do |n|
+        expect(n.positive?).to be(true)
+      end
+    end
+  end
+
+  it 'can produce non empty collections or strings with #not_empty' do
+    non_empty_values = tuple(not_empty(string), not_empty(array(fixnum)), not_empty(set(char_alpha)))
+
+    aggregate_failures do
+      non_empty_values.to_enum.take(100).each do |tuple|
+        tuple.each do |v|
+          expect([v, v.empty?]).to eq([v, false])
+        end
+      end
+    end
+  end
+
+  it 'can produce values from one of the provided generators with #one_of' do
+    one_of_gen = one_of(fixnum, rational, boolean)
+
+    aggregate_failures do
+      one_of_gen.to_enum.take(100).each do |v|
+        expect(v).to be_instance_of(Fixnum).or be_instance_of(Rational).or be_instance_of(TrueClass).or be_instance_of(FalseClass)
+      end
+    end
+  end
+
+  it 'can repeatedly produce the same value with #return' do
+    val = [:this, :and, :that]
+    gen = Radagen.return(val)
+
+    aggregate_failures do
+      gen.to_enum.take(100).each do |v|
+        expect(v).to eq(val)
+      end
+    end
+  end
+
+  it 'can produce values by selecting from a collection with #elements' do
+    coll = [:yep, :nope, :maybe]
+    elems = elements(coll)
+
+    aggregate_failures do
+      elems.to_enum.take(100).each do |v|
+        expect(coll).to include(v)
+      end
+    end
+  end
+
+  # scalars
+  it 'can produce a range of different characters' do
+    characters = [['char', char, (0..255).to_a],
+                  ['char_ascii', char_ascii, (32..126).to_a],
+                  ['char_alphanumeric', char_alphanumeric, [(48..57).to_a, (65..90).to_a, (97..122).to_a].flatten],
+                  ['char_alpha', char_alpha, [(65..90).to_a, (97..122).to_a].flatten],
+                  ['char_numeric', char_numeric, (48..57).to_a]]
+
+    characters.each do |name, gen, range|
+      aggregate_failures("while checking #{name}") do
+        gen.to_enum.take(100).each do |c|
+          expect(range.to_a).to include(c.ord)
+        end
+      end
+    end
+
+  end
+
+  it 'can produce type 4 UUID strings' do
+    uuids = uuid.sample(60)
+
+    expect(uuids.map { |s| s[14] }).to all match('4')
+    expect(uuids.map { |s| s[19] }).to include('9', '8', 'a', 'b')
+  end
+
+  it 'can produce fixnums with #fixnum' do
+    aggregate_failures do
+      fixnum.to_enum.take(200).each do |f|
+        expect(f).to be_instance_of(Fixnum)
+      end
+    end
+  end
+
+  it  'can produce positive fixnums with #fixnum_pos' do
+    aggregate_failures do
+      fixnum_pos.to_enum.take(200) do |f|
+        expect(f).to be_instance_of(Float).and be_positive?
+      end
+    end
+  end
+
+  it 'can produce negative fixnums with #fixnum_neg' do
+    aggregate_failures do
+      fixnum_neg.to_enum.take(200) do |f|
+        expect(f).to be_instance_of(Float).and be_negative?
+      end
+    end
+  end
+
+  it 'can produce floats with #float' do
+    aggregate_failures do
+      float.to_enum.take(200).each do |f|
+        expect(f).to be_instance_of(Float)
+      end
+    end
+  end
+
+  it 'can produce rational numbers with #rational' do
+    aggregate_failures do
+      rational.to_enum.take(200).each do |r|
+        expect(r).to be_instance_of(Rational)
+      end
+    end
+  end
+
+end
