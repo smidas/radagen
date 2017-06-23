@@ -5,7 +5,7 @@ describe 'Radagen' do
   include Radagen
 
   before(:example) do
-    @seed = ENV.fetch('TEST_SEED', Random.new_seed)
+    @seed = ENV.fetch('PRNG_SEED', Random.new_seed)
     @prng = Random.new(@seed)
   end
 

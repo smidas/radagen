@@ -193,7 +193,7 @@ module Radagen
   def array(gen, opts={})
     size_gen = sized do |size|
       min, max = {min: 0, max: size}.merge(opts).values_at(:min, :max)
-      raise RangeError.new, "max value (#{max}) needs to be larger than or equal to min value (#{min}), perhaps provide a max value?" unless max >= min
+      raise RangeError.new, "max value (#{max}) needs to be larger than or equal to min value (#{min}), provide a max value larger than min." unless max >= min
       choose(min, max)
     end
 
@@ -202,8 +202,6 @@ module Radagen
       tuple(*gens)
     end
   end
-
-  require 'set'
 
   # Creates a generator that when called returns a varying
   # length Set with values realized from the passed in
@@ -223,7 +221,7 @@ module Radagen
   #
   def set(gen, opts={})
     fmap(array(gen, opts)) do |array|
-      array.to_set
+      Set[*array]
     end
   end
 
