@@ -1,6 +1,7 @@
 # Radagen
 
 [![Build Status](https://travis-ci.org/smidas/radagen.svg?branch=master)](https://travis-ci.org/smidas/radagen)
+[![Gem Version](https://badge.fury.io/rb/radagen.svg)](https://badge.fury.io/rb/radagen)
 
 Radagen is a psuedo random data generator library for the Ruby language built with two primary design goals: *composition* and *sizing*. These two properties allow this library to be used in a range of different applications from simple test data generation, model checking, fuzz testing, database seeding to the foundation of a generative/property based testing framework.
 
