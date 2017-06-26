@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/smidas/radagen.svg?branch=master)](https://travis-ci.org/smidas/radagen)
 
-Radagen is a psuedo random data generator library for the Ruby language and was build with two primary design goals: *composition* and *sizing*. These two properties allow this library to be used in a range of different applications from simple test data generation, model checking, fuzz testing, database seeding to the foundation of a generative/property based testing framework.
+Radagen is a psuedo random data generator library for the Ruby language built with two primary design goals: *composition* and *sizing*. These two properties allow this library to be used in a range of different applications from simple test data generation, model checking, fuzz testing, database seeding to the foundation of a generative/property based testing framework.
 
 ## Requirements
 - Ruby 2.0+
@@ -37,7 +37,7 @@ my_fixnum = gen.fixnum
 my_string = gen.string_alphanumeric
 ```
 
-So far we have required the Radagen gem and "namespaced" the Radagen module to `gen`. Throughout the rest of this documentation I will assume `Radagen` is namespaced to `gen`. Lets take look at what values those generators can produce.
+So far we required the Radagen gem and "namespaced" the Radagen module to `gen`. Throughout the rest of this documentation it will be assume `Radagen` is namespaced to `gen`. Let's take look at what values these generators can produce.
 
 ```ruby
 my_fixnum.sample => [0, 0, -1, 1, -3, -4, -5, -1, -2, -7]
@@ -79,10 +79,7 @@ my_string.sample(30) =>  ["",
                           "9QbchgbZtY7C57Eq"]
 ```
 
-There is something to be noticed about the values produced by `my_string` generator. The values grow in *size* and *complexity* because as `sample` calls the generator it passes a larger and larger *size* value. This is a very important aspect of all Radagen generators and will be detailed further in `Sizing`.
-
-### Radagen::Generator
-
+There is something to be noticed about the values produced by `my_string` generator. The values grow in *size* and *complexity* because as `sample` calls the generator it passes a larger and larger *size* value. This is a very important aspect of all Radagen generators and will be detailed further in `sizing`.
 
 ### Composition
 
@@ -102,7 +99,7 @@ my_hash.sample => [{:fixnum=>0, :string=>""},
                    {:fixnum=>-1, :string=>"Dy443"}]
 ```
 
-Above we have built a `hash` generator were the values are taken from previous generators. There is of course little different between the above and the following.
+Above we have built a `hash` generator which uses values taken from previous generators. There is of course little difference between the above and the following:
 
 ```ruby
 my_hash = gen.hash(:fixnum => gen.fixnum, :string => gen.string_alphanumeric)
@@ -141,7 +138,7 @@ individual_account.sample => [{:account_id=>"d4f6a194-d2d8-4c4f-9a89-df3f477f3df
                               {:account_id=>"8781bf21-85f0-40f4-b407-85805da60ba6", :type=>"individual", :meta=>{:fixnum=>-1, :string=>"Z"}}]
 ```
 
-What has been shown is a provided `hash` generator combinator, but what if you would like to make your own combinators? There are two combinator primitives `bind` and `fmap` that can be used.
+The `hash` generator combinator conveniently will nest any generator. But what if you would like to make your own combinators? There are two primitives to work with; `bind` and `fmap`.
 
 ```ruby
 domain = gen.elements(['gmail.com', 'mailinator.com'])
@@ -154,11 +151,11 @@ end
 email_account.sample => ["@gmail.com", "r@gmail.com", "U@gmail.com", "mj@gmail.com", "z^@mailinator.com", "B_@mailinator.com", "(t-f;@gmail.com", "@gmail.com", ")3-@mailinator.com", "n@mailinator.com"]
 ```
 
-Lets walk thru the above example. `elements` will randomly select an element from the array you pass it (ex. 'gmail.com' or 'mailinator.com'). `string_ascii` will produce strings containing the *ascii* band of characters. `fmap` will take values from a generator, which in this case was a `tuple` with the first value taken from the *name* generator and the second taken from the *domain* generator, and passes those values to a `block`. Within the block we do some destructuring to the tuple and with string interpolation we return an email account string. Note that the block passed to `fmap` requires you return a *value* not say another generator.
+Lets walk thru the above example. `elements` will randomly select an element from the array you pass it (ex. 'gmail.com' or 'mailinator.com'). `string_ascii` will produce strings containing the *ascii* band of characters. `fmap` will take values from a generator, which in this case was a two `tuple` with the first value taken from the *name* generator and the second taken from the *domain* generator, and passes those values to a `block`. Within the block we do some destructuring to the tuple and with string interpolation we return an email account string. Note the block passed to `fmap` requires you return a *value* NOT another generator.
 
-The first example you noticed has an *empty* name which isn't a valid email address. Now we see our first example of how a 'stocastic' like tool can challenge our assumptions, or at least forces you to consider the domain you are working a little deeper.
+The first example you noticed has an *empty* name which isn't a valid email address. We see our first example of how a 'stocastic' like tool can challenge our assumptions, or at least forces you to consider the domain you are working a little deeper.
 
-If you didn't want the generator to produce *empty* names you could do the following:
+If you don't want the generator to produce *empty* names you could do the following:
 
 ```ruby
 name = gen.not_empty(gen.string_ascii)
@@ -167,7 +164,7 @@ name.sample => ["1", "G", "y", "K", "<xv", "|5`", "u4GgC", "^", "n(]yZ2", "V7-"]
 
 Using `not_empty` here takes the `string_ascii` generator, returning another generator that won't produce empty strings.
 
-`bind` is similar to `fmap` but the block instead of returning a *value* needs to return another `Radagen::Generator`.
+`bind` is similar to `fmap` but the block instead of returning a *value* needs to return a `Radagen::Generator`.
 
 ```ruby
 account = gen.hash({:id => gen.uuid, :name => gen.string_alpha, :comment_count => gen.fixnum_pos})
@@ -183,25 +180,22 @@ accounts_and_selection.sample => [[[{:id=>"8f9308be-976f-447b-b207-3e4f3391d8da"
                                   [[{:id=>"63e812b2-e1b2-4528-acd2-f36d0f323dbd", :name=>"", :comment_count=>1}], {:id=>"63e812b2-e1b2-4528-acd2-f36d0f323dbd", :name=>"", :comment_count=>1}]]
 ```
 
-`accounts_and_selection` will create an array of accounts and then randomly select one of those accounts returning a two-tuple of that representation. This type of pattern is very helpful when you want to setup state in a system and then interact with one or more of the objects. Why create a generator that does the selection for you and not just select an element after the values from the generator have been produced? Reproducibility. Being able to rerun the same generator with the same *seed*, producing the same array of accounts and selection is important when using this library in a testing context or in any context really.
+`accounts_and_selection` will create an array of accounts and then randomly select one of those accounts returning a two-tuple of that representation. This type of pattern is very helpful when you want to setup state in a system and then interact with one or more of the objects. Why create a generator that does the selection for you and not just select an element after the values from the generator that have been produced? Reproducibility. Being able to rerun the same generator with the same *seed*, producing the same array of accounts and selection is important when using this library in a testing context or in any context really.
 
 ### Seeding
 
-*Seeding* and generator is simply providing a starting state to the [pseudo random number generator](https://en.wikipedia.org/wiki/Pseudorandom_number_generator) so that you can repeatably produce the same values from your generator.
+*Seeding* the generator is simply providing a starting state to the [pseudo random number generator](https://en.wikipedia.org/wiki/Pseudorandom_number_generator) so that you can repeatably produce the same values from your generator.
 
 #### gen
 ```ruby
 seed = 5647326586234654723645
 
-accounts_and_selection.gen(seed: seed, size: 5) => [[{:id=>"0cc609b8-7ada-4192-be41-1f2b29369b14", :name=>"Kiq", :comment_count=>5}, {:id=>"cc8e373b-1a06-4d2c-adad-bb18f9d9b10f", :name=>"vU", :comment_count=>3}], {:id=>"0cc609b8-7ada-4192-be41-1f2b29369b14", :name=>"Kiq", :comment_count=>5}]
+accounts_and_selection.gen(5, seed) => [[{:id=>"0cc609b8-7ada-4192-be41-1f2b29369b14", :name=>"Kiq", :comment_count=>5}, {:id=>"cc8e373b-1a06-4d2c-adad-bb18f9d9b10f", :name=>"vU", :comment_count=>3}], {:id=>"0cc609b8-7ada-4192-be41-1f2b29369b14", :name=>"Kiq", :comment_count=>5}]
 
-seed = 5647326586234654723645
-prng2 = Random.new(seed)
-
-accounts_and_selection.gen((seed: seed, size: 5) => [[{:id=>"0cc609b8-7ada-4192-be41-1f2b29369b14", :name=>"Kiq", :comment_count=>5}, {:id=>"cc8e373b-1a06-4d2c-adad-bb18f9d9b10f", :name=>"vU", :comment_count=>3}], {:id=>"0cc609b8-7ada-4192-be41-1f2b29369b14", :name=>"Kiq", :comment_count=>5}]
+accounts_and_selection.gen(5, seed) => [[{:id=>"0cc609b8-7ada-4192-be41-1f2b29369b14", :name=>"Kiq", :comment_count=>5}, {:id=>"cc8e373b-1a06-4d2c-adad-bb18f9d9b10f", :name=>"vU", :comment_count=>3}], {:id=>"0cc609b8-7ada-4192-be41-1f2b29369b14", :name=>"Kiq", :comment_count=>5}]
 ```
 
-Taking our `account_and_selection` generator we created above, providing a *seed* value and a size we were able to reproduce the same generated value. In this example we are using the `gen` method allowing us to directly pass in a seed and a *size*. Note the *size* value needs to be seen as a state value as well as it will of influence the value produced. The `sample` method does NOT provide this level of interactively and is intended for exploratory interaction in a console.
+Taking our `account_and_selection` generator we created above, providing a *seed* value and a size we were able to reproduce the same generated value. In this example using the `gen` method, we can pass in the *size* and *seed* to the generator. Note the *size* value should also be seen as a state value as it will influence the value produced. The `sample` method does NOT provide this level of interactively and is intended for exploratory interaction in a console.
 
 #### to_enum
 ```ruby
@@ -220,7 +214,7 @@ You can also leverage the `to_enum` method which will return an enumerable repre
 
 ### Sizing
 
-Sizing provides the ability for a generator to produce values of varying degrees of well, *size*. Size has different meaning depending on the context of the generator being used. In some cases generators don't honor the size parameter at all. Examples being `uuid` and `identity`. When a generator is called to produce a value the *size* that is passed in represents the upper bound of all possible sizes starting from zero, that could be generated. Why? This is so that methods like `to_enum`, `sample` and `gen` don't return a predictable linear growth of values as they are passed ever increasing size values. It is also why this library and libraries like it seem to have the ability to walk thru progressively more complex values "randomly", perhaps challenging boundary assumptions of a model.
+Sizing provides the ability for a generator to produce values of varying degrees of well, *size*. Size has different meaning depending on the context of the generator being used. In some cases generators don't honor the size parameter at all. Examples being `uuid` and `identity`. When a generator is called to produce a value the *size* that is passed in represents the *upper bound* of all possible sizes starting from zero that could be generated. Why? This is so that methods like `to_enum`, `sample` and `gen` don't return a predictable linear growth of values as they are passed ever increasing size values. It is also why this library and libraries like it seem to have the ability to walk thru progressively more complex values "randomly", perhaps challenging boundary assumptions of a model.
 
 ```ruby
 5.times { p gen.fixnum.gen(size: 2) } => 2 0 -1 1 -2
