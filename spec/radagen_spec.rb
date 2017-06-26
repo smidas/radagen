@@ -6,14 +6,13 @@ describe 'Radagen' do
 
   before(:example) do
     @seed = ENV.fetch('PRNG_SEED', Random.new_seed)
-    @prng = Random.new(@seed)
   end
 
   it 'has a version number' do
     expect(Radagen::VERSION).not_to be nil
   end
 
-  it 'generators can be sampled for interactive exploration' do
+  it 'can be sampled for interactive exploration' do
     hash_generator = hash_map(symbol, identity(80))
 
     samples = hash_generator.sample(20)
@@ -26,16 +25,31 @@ describe 'Radagen' do
     end
   end
 
+  it '#to_enum can take a size_min and size_max' do
+    aggregate_failures do
+      string_ascii.to_enum(size_min: 300, size_max: 500).take(500).each do |str|
+        expect(str.length).to be <= 500
+      end
+    end
+  end
+
+  it '#to_enum can be passed a seed value' do
+    gen1 = string_numeric.to_enum(seed: @seed).take(400)
+    gen2 = string_numeric.to_enum(seed: @seed).take(400)
+
+    expect(gen1.to_a).to eq(gen2.to_a)
+  end
+
   it 'can #choose a random fixnum' do
     min, max = 4, 30
-    choice = choose(min, max).call(@prng, 40)
+    choice = choose(min, max).gen( 40, @seed)
 
     expect(choice).to be_between(min, max)
   end
 
   it 'can #choose a random float' do
     min, max = 3.0, 60.0
-    choice = choose(min, max).call(@prng, 40)
+    choice = choose(min, max).gen( 40, @seed)
 
     expect(choice).to be_between(min, max)
   end
@@ -55,11 +69,11 @@ describe 'Radagen' do
 
   it 'can set a size value to a generator using #resize' do
     str_values = (0..60).to_a.map do |size|
-      resize(string_alphanumeric, 200).call(Random.new(@seed), size)
+      resize(string_alphanumeric, 200).gen(size, @seed)
     end
 
     hash_values = (0..60).to_a.map do |size|
-      resize(hash_map(symbol, string_ascii), 200).call(Random.new(@seed), size)
+      resize(hash_map(symbol, string_ascii), 200).gen(size, @seed)
     end
 
     expect(str_values).to all match(str_values.first)
@@ -72,8 +86,8 @@ describe 'Radagen' do
       size * 5
     end
 
-    scaled_str = scaled_strs.call(Random.new(223936931316408050451040303833958099796), 10)
-    str = string_numeric.call(Random.new(223936931316408050451040303833958099796), 10)
+    scaled_str = scaled_strs.gen(10, 223936931316408050451040303833958099796)
+    str = string_numeric.gen(10, 223936931316408050451040303833958099796)
 
     expect(scaled_str).to eq('822724257908990748731837278449245821216')
     expect(str).to eq('8227242')
@@ -144,7 +158,7 @@ describe 'Radagen' do
     end
   end
 
-  it 'can produce sets with min size with #set' do
+  it 'can produce sets with min size with #set', :wip do
     min = 4
     arrays = set(fixnum, min: min, max: 300)
 
