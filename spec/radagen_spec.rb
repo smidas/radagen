@@ -4,24 +4,48 @@ require_relative '../lib/radagen'
 describe 'Radagen' do
   include Radagen
 
-  before(:example) do
-    @prng = Random.new
-  end
-
   it 'has a version number' do
     expect(Radagen::VERSION).not_to be nil
   end
 
+  it 'can be sampled for interactive exploration' do
+    hash_generator = hash_map(symbol, identity(80))
+
+    samples = hash_generator.sample(20)
+    expect(samples.length).to be(20)
+
+    aggregate_failures do
+      samples.each do |value|
+        expect(value).to be
+      end
+    end
+  end
+
+  it '#to_enum can take a size_min and size_max' do
+    aggregate_failures do
+      string_ascii.to_enum(size_min: 300, size_max: 500).take(500).each do |str|
+        expect(str.length).to be <= 500
+      end
+    end
+  end
+
+  it '#to_enum can be passed a seed value' do
+    gen1 = string_numeric.to_enum(seed: @seed).take(400)
+    gen2 = string_numeric.to_enum(seed: @seed).take(400)
+
+    expect(gen1.to_a).to eq(gen2.to_a)
+  end
+
   it 'can #choose a random fixnum' do
     min, max = 4, 30
-    choice = choose(min, max).call(@prng, 40)
+    choice = choose(min, max).gen( 40, @seed)
 
     expect(choice).to be_between(min, max)
   end
 
   it 'can #choose a random float' do
     min, max = 3.0, 60.0
-    choice = choose(min, max).call(@prng, 40)
+    choice = choose(min, max).gen( 40, @seed)
 
     expect(choice).to be_between(min, max)
   end
@@ -29,7 +53,7 @@ describe 'Radagen' do
   it 'can expose the size passed to generator with #sized' do
     gen = sized do |size|
       cube_size = size ** 3
-      tuple(choose(0, cube_size), Radagen.return(cube_size))
+      tuple(choose(0, cube_size), identity(cube_size))
     end
 
     aggregate_failures do
@@ -40,14 +64,12 @@ describe 'Radagen' do
   end
 
   it 'can set a size value to a generator using #resize' do
-    seed = Random.new_seed
-
     str_values = (0..60).to_a.map do |size|
-      resize(string_alphanumeric, 200).call(Random.new(seed), size)
+      resize(string_alphanumeric, 200).gen(size, @seed)
     end
 
     hash_values = (0..60).to_a.map do |size|
-      resize(hash_map(symbol, string_ascii), 200).call(Random.new(seed), size)
+      resize(hash_map(symbol, string_ascii), 200).gen(size, @seed)
     end
 
     expect(str_values).to all match(str_values.first)
@@ -60,15 +82,15 @@ describe 'Radagen' do
       size * 5
     end
 
-    scaled_str = scaled_strs.call(Random.new(223936931316408050451040303833958099796), 10)
-    str = string_numeric.call(Random.new(223936931316408050451040303833958099796), 10)
+    scaled_str = scaled_strs.gen(10, 223936931316408050451040303833958099796)
+    str = string_numeric.gen(10, 223936931316408050451040303833958099796)
 
     expect(scaled_str).to eq('822724257908990748731837278449245821216')
     expect(str).to eq('8227242')
   end
 
   it 'can map over and transform generator values with #fmap' do
-    gen = fmap(Radagen.return(5)) { |v| v * 5 }
+    gen = fmap(identity(5)) { |v| v * 5 }
     expect(gen.sample).to all match(25)
   end
 
@@ -76,7 +98,7 @@ describe 'Radagen' do
     fixnums = not_empty(array(fixnum))
 
     elem_of_array = bind(fixnums) do |array|
-      tuple(elements(array), Radagen.return(array))
+      tuple(elements(array), identity(array))
     end
 
     aggregate_failures do
@@ -132,7 +154,7 @@ describe 'Radagen' do
     end
   end
 
-  it 'can produce sets with min size with #set' do
+  it 'can produce sets with min size with #set', :wip do
     min = 4
     arrays = set(fixnum, min: min, max: 300)
 
@@ -177,12 +199,12 @@ describe 'Radagen' do
     end
   end
 
-  it 'can filter values from a generator based on provided predicate with #such_that' do
-    larger_than_10 = such_that(fixnum, &:positive?)
+  it 'can filter values from a gene rator based on provided predicate with #such_that' do
+    positive_fixnums = such_that(fixnum_pos, 20) { |f| f > 4 }
 
     aggregate_failures do
-      larger_than_10.to_enum.take(100).each do |n|
-        expect(n.positive?).to be(true)
+      positive_fixnums.to_enum.take(100).each do |n|
+        expect(n).to be > 4
       end
     end
   end
@@ -211,7 +233,7 @@ describe 'Radagen' do
 
   it 'can repeatedly produce the same value with #return' do
     val = [:this, :and, :that]
-    gen = Radagen.return(val)
+    gen = identity(val)
 
     aggregate_failures do
       gen.to_enum.take(100).each do |v|

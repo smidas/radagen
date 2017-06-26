@@ -192,8 +192,8 @@ module Radagen
   #
   def array(gen, opts={})
     size_gen = sized do |size|
-      min, max = {min: 0, max: size}.merge(opts).fetch_values(:min, :max)
-      raise RangeError.new, "max value (#{max}) needs to be larger than or equal to min value (#{min}), perhaps provide a max value?" unless max >= min
+      min, max = {min: 0, max: size}.merge(opts).values_at(:min, :max)
+      raise RangeError.new, "max value (#{max}) needs to be larger than or equal to min value (#{min}), provide a max value larger than min." unless max >= min
       choose(min, max)
     end
 
@@ -202,8 +202,6 @@ module Radagen
       tuple(*gens)
     end
   end
-
-  require 'set'
 
   # Creates a generator that when called returns a varying
   # length Set with values realized from the passed in
@@ -223,7 +221,7 @@ module Radagen
   #
   def set(gen, opts={})
     fmap(array(gen, opts)) do |array|
-      array.to_set
+      Set[*array]
     end
   end
 
@@ -244,7 +242,7 @@ module Radagen
     raise ArgumentError.new 'all values in hash need to be a Gen::Generator' unless vs.all? { |g| gen? g }
 
     fmap(tuple(*vs)) do |vs|
-      ks.zip(vs).to_h
+      Hash[ks.zip(vs)]
     end
   end
 
@@ -261,7 +259,7 @@ module Radagen
   #
   def hash_map(key_gen, value_gen)
     fmap(array(tuple(key_gen, value_gen))) do |tuple_array|
-      tuple_array.to_h
+      Hash[tuple_array]
     end
   end
 
@@ -350,11 +348,13 @@ module Radagen
   # @return [Radagen::Generator]
   #
   # @example
-  #   return(["something"]).sample(4) #=> [["something"], ["something"], ["something"], ["something"]]
+  #   identity(["something"]).sample(4) #=> [["something"], ["something"], ["something"], ["something"]]
   #
-  def return(value)
+  def identity(value)
     RG.new { |_, _| value }
   end
+
+  alias :return :identity
 
   # Returns a generator that takes a single element from
   # the passed in collection. Works with object that
@@ -374,7 +374,7 @@ module Radagen
     _coll = coll.to_a
 
     bind(choose(0, _coll.count - 1)) do |i|
-      self.return(_coll.fetch(i))
+      identity(_coll.fetch(i))
     end
   end
 
@@ -603,7 +603,7 @@ module Radagen
   #   fixnum_pos.sample(5) #=> [1, 1, 3, 2, 4]
   #
   def fixnum_pos
-    such_that(natural) { |f| f.positive? }
+    such_that(natural) { |f| f > 0 }
   end
 
   # Returns a generator that will return negative fixnums.
