@@ -23,7 +23,9 @@ Or install it yourself as:
 
     $ gem install radagen
 
-## API Documentation
+## Documentation
+
+[Lastest Release API](http://www.rubydoc.info/gems/radagen)
 
 ## Usage
 
