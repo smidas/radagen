@@ -30,7 +30,7 @@ Or install it yourself as:
 
 ## Usage
 
-The main use case for Radagen is to create data generators that produce arbitrarily complex values. These generators can then be used in many different contexts. Lets start with a few of the `scalar` generators provided by Radagen.
+The main use case for Radagen is to create data generators that produce arbitrarily complex values. These generators can then be used in many different contexts. Let's start with a few of the `scalar` generators provided by Radagen.
 
 ```ruby
 require 'radagen'
@@ -40,14 +40,14 @@ my_fixnum = gen.fixnum
 my_string = gen.string_alphanumeric
 ```
 
-So far we required the Radagen gem and "namespaced" the Radagen module to `gen`. Throughout the rest of this documentation it will be assume `Radagen` is namespaced to `gen`. Let's take look at what values these generators can produce.
+So far we required the Radagen gem and "namespaced" the Radagen module to `gen`. Throughout the rest of this documentation it will be assumed `Radagen` is namespaced to `gen`. Let's take look at what values these generators produce.
 
 ```ruby
 my_fixnum.sample => [0, 0, -1, 1, -3, -4, -5, -1, -2, -7]
 my_string.sample => ["", "", "jV", "", "7zS", "2", "U9O84Q", "4S", "6Ccw66", "0Sip741V"]
 ```
 
-`sample` above is a utility method on the `Radagen::Generator` object that allows you to interact with your generator seeing what type of values it will produce. As shown above `sample` returns a sampling of 10 values by default. You can change this number sampled by providing a count.
+`sample` above is a utility method on the `Radagen::Generator` object that allows you to interact with your generator seeing what type of values it will produce. As shown above `sample` returns a sampling of 10 values by default. You can also provide a count.
 
 ```ruby
 my_string.sample(30) =>  ["",
@@ -82,7 +82,7 @@ my_string.sample(30) =>  ["",
                           "9QbchgbZtY7C57Eq"]
 ```
 
-There is something to be noticed about the values produced by `my_string` generator. The values grow in *size* and *complexity* because as `sample` calls the generator it passes a larger and larger *size* value. This is a very important aspect of all Radagen generators and will be detailed further in `sizing`.
+Notice the values produced by `my_string` generator. They grow in *size* and *complexity* because as `sample` calls the generator, it passes a larger and larger *size* value. This is a very important aspect of all Radagen generators and will be detailed further in `sizing`.
 
 ### Composition
 
@@ -154,7 +154,7 @@ end
 email_account.sample => ["@gmail.com", "r@gmail.com", "U@gmail.com", "mj@gmail.com", "z^@mailinator.com", "B_@mailinator.com", "(t-f;@gmail.com", "@gmail.com", ")3-@mailinator.com", "n@mailinator.com"]
 ```
 
-Lets walk thru the above example. `elements` will randomly select an element from the array you pass it (ex. 'gmail.com' or 'mailinator.com'). `string_ascii` will produce strings containing the *ascii* band of characters. `fmap` will take values from a generator, which in this case was a two `tuple` with the first value taken from the *name* generator and the second taken from the *domain* generator, and passes those values to a `block`. Within the block we do some destructuring to the tuple and with string interpolation we return an email account string. Note the block passed to `fmap` requires you return a *value* NOT another generator.
+`elements` will randomly select an element from the array you pass it (ex. 'gmail.com' or 'mailinator.com'). `string_ascii` will produce strings containing the *ascii* band of characters. `fmap` will take values from a generator, which in this case was a two `tuple` with the first value taken from the *name* generator and the second taken from the *domain* generator, and passes those values to a `block`. Within the block we do some destructuring to the tuple and with string interpolation we return an email account string. Note the block passed to `fmap` requires you return a *value* NOT another generator.
 
 The first example you noticed has an *empty* name which isn't a valid email address. We see our first example of how a 'stocastic' like tool can challenge our assumptions, or at least forces you to consider the domain you are working a little deeper.
 
@@ -220,13 +220,13 @@ You can also leverage the `to_enum` method which will return an enumerable repre
 Sizing provides the ability for a generator to produce values of varying degrees of well, *size*. Size has different meaning depending on the context of the generator being used. In some cases generators don't honor the size parameter at all. Examples being `uuid` and `identity`. When a generator is called to produce a value the *size* that is passed in represents the *upper bound* of all possible sizes starting from zero that could be generated. Why? This is so that methods like `to_enum`, `sample` and `gen` don't return a predictable linear growth of values as they are passed ever increasing size values. It is also why this library and libraries like it seem to have the ability to walk thru progressively more complex values "randomly", perhaps challenging boundary assumptions of a model.
 
 ```ruby
-5.times { p gen.fixnum.gen(size: 2) } => 2 0 -1 1 -2
+5.times { p gen.fixnum.gen(2) } => 2 0 -1 1 -2
 
-5.times { p gen.string.gen(size: 300) } => "oysO930W8B4QU02J05qEWPn6R6H7xTZKFGbG6Hpo28b"
-                                           "R021N1tw0927BXZP7GbzgRE4rA5t46785g27jsztMRlaz571XzHoi6yBv22ec97194yByN3KIYM3EX1XiRrA08Y32S5i2AvkevMRLClA8Xsb0N7R"
-                                           "3zFiC25U5495KY52FcB1B12txoA6xlFc83TJ97j9ytKSfi0rs1EwSILytRyMy2S5F70TrT6H457teJkVk5fr"
-                                           "VaLYheY512yh2qsj2MV31dl7oV56kWmmLlPSDIJwd74mOcyYfQft8N9756VfM5ExtBHql9TnRWl15j3beLww4p176G48s5q8bEWS0Nwcx7RX0WBz2nO412k7fWGi3nmxn8i156C45AHS27ttTB34sT0MiY63HWG0rbXLXnt41d3m5HiWmbnyh9yL36KH3TL4NMwK4vV0A9gZ6DpLrvPUWYaNYgEqQ0MGll1d2009l388upimkl71xaglmK97r7EDA491"
-                                           "82Q78FWpl1992nXtPUP2cF0rnM7jUPo0M6F8VgvbrQjHY4Var31H0aY94OF0Np6mlxM648S38LBvTrjZObsGn2eB9RPqzqWOlzMD0j71UKRZU90L7B95B5MdZMviaj5vml3JkkIODi6QZQWUobQt4Gr6b0mqR69UQ77897BuK2VjmFdNPLx4z8we7Bk0vU5o6DcJQgxOu7ZP"
+5.times { p gen.string.gen(300) } => "oysO930W8B4QU02J05qEWPn6R6H7xTZKFGbG6Hpo28b"
+                                     "R021N1tw0927BXZP7GbzgRE4rA5t46785g27jsztMRlaz571XzHoi6yBv22ec97194yByN3KIYM3EX1XiRrA08Y32S5i2AvkevMRLClA8Xsb0N7R"
+                                     "3zFiC25U5495KY52FcB1B12txoA6xlFc83TJ97j9ytKSfi0rs1EwSILytRyMy2S5F70TrT6H457teJkVk5fr"
+                                     "VaLYheY512yh2qsj2MV31dl7oV56kWmmLlPSDIJwd74mOcyYfQft8N9756VfM5ExtBHql9TnRWl15j3beLww4p176G48s5q8bEWS0Nwcx7RX0WBz2nO412k7fWGi3nmxn8i156C45AHS27ttTB34sT0MiY63HWG0rbXLXnt41d3m5HiWmbnyh9yL36KH3TL4NMwK4vV0A9gZ6DpLrvPUWYaNYgEqQ0MGll1d2009l388upimkl71xaglmK97r7EDA491"
+                                     "82Q78FWpl1992nXtPUP2cF0rnM7jUPo0M6F8VgvbrQjHY4Var31H0aY94OF0Np6mlxM648S38LBvTrjZObsGn2eB9RPqzqWOlzMD0j71UKRZU90L7B95B5MdZMviaj5vml3JkkIODi6QZQWUobQt4Gr6b0mqR69UQ77897BuK2VjmFdNPLx4z8we7Bk0vU5o6DcJQgxOu7ZP"
 
 ```
 
