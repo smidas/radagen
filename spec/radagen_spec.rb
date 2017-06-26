@@ -4,10 +4,6 @@ require_relative '../lib/radagen'
 describe 'Radagen' do
   include Radagen
 
-  before(:example) do
-    @seed = ENV.fetch('PRNG_SEED', Random.new_seed).to_i
-  end
-
   it 'has a version number' do
     expect(Radagen::VERSION).not_to be nil
   end
