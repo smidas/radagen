@@ -89,7 +89,7 @@ Notice the values produced by `my_string` generator. They grow in *size* and *co
 `scalar` generators are interesting but can only take you so far. We now will explore the ideas around composition. Lets build on the previous generators.
 
 ```ruby
-my_hash = gen.hash(:fixnum => my_fixnum, :string => my_strings)
+my_hash = gen.hash(:fixnum => my_fixnum, :string => my_string)
 my_hash.sample => [{:fixnum=>0, :string=>""},
                    {:fixnum=>1, :string=>"9"},
                    {:fixnum=>-1, :string=>"1"},
