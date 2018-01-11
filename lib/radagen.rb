@@ -1,4 +1,3 @@
-require 'radagen/version'
 require 'radagen/generator'
 
 module Radagen
@@ -10,7 +9,7 @@ module Radagen
   # @return [Boolean]
   #
   def gen?(obj)
-    obj.class == Radagen::Generator
+    obj.is_a?(Radagen::Generator)
   end
 
   # Creates a generator that will choose (inclusive)
@@ -168,17 +167,19 @@ module Radagen
     end
   end
 
-  # Creates a generator that when called returns a varying
-  # length Array with values realized from the passed in
-  # generator. Excepts an options Hash that can contain the
-  # keys :min and :max. These will define the minimum and
-  # maximum amount of values in the realized Array.
+  # Creates a generator that when called returns a fixed or
+  # varying length Array with values realized from the passed in
+  # generator. Excepts options Hash that can contain the
+  # keys :min, :max, :count. These will define the minimum,
+  # maximum or fixed amount of values in the realized Array.
   #
   # @note If you provide a *:min* value then it is good practice to also provide a *:max* value as you can't be sure that the *size* passed to the generator will be greater or equal to :min.
+  # @note If you provide a *:count* value then *:min* and *:max* values if passed in are ignored.
   # @param gen [Radagen::Generator] generator that produces values in the Array
   # @param opts [Hash] the options hash to provide extra context to the generator
   # @option opts [Fixnum] :min (0) minimum number of values in a generated Array
   # @option opts [Fixnum] :max (*size*) maximum number of values in a generated Array
+  # @option opts [Fixnum] :count (nil) fixed number of values in a generated Array
   # @return [Radagen::Generator]
   #
   # @example
@@ -190,16 +191,27 @@ module Radagen
   # @example
   #   array(fixnum, min: 4, max: 7).sample(4) #=> [[0, 0, 0, 0, 0], [-1, 0, -1, 1, -1], [-2, -2, -1, 2, 0], [0, 2, 3, -1, -2, -2, 3]]
   #
-  def array(gen, opts={})
-    size_gen = sized do |size|
-      min, max = {min: 0, max: size}.merge(opts).values_at(:min, :max)
-      raise RangeError.new, "max value (#{max}) needs to be larger than or equal to min value (#{min}), provide a max value larger than min." unless max >= min
-      choose(min, max)
-    end
+  # @example
+  #   array(fixnum, count: 10).sample(3) #=> [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1, -1, 1, 1, 0, 1, 1, 1, 0, 0], [2, 1, 0, 2, 0, -1, -2, 2, 2, 2]]
+  #
+  def array(gen, opts = {})
+    count = { count: nil }.merge(opts)[:count]
+    raise ArgumentError, "count must be an Integer or Nil" unless count.is_a?(Integer) or count.is_a?(NilClass)
 
-    bind(size_gen) do |_size|
-      gens = (0..._size).map { gen }
+    if count
+      gens = (0...count).map { gen }
       tuple(*gens)
+    else
+      size_gen = sized do |size|
+        min, max = { min: 0, max: size }.merge(opts).values_at(:min, :max)
+        raise RangeError.new, "max value (#{max}) needs to be larger than or equal to min value (#{min})" unless max >= min
+        choose(min, max)
+      end
+
+      bind(size_gen) do |_size|
+        gens = (0..._size).map { gen }
+        tuple(*gens)
+      end
     end
   end
 
@@ -564,7 +576,7 @@ module Radagen
   # @return [Radagen::Generator]
   #
   # @example
-  #   string_alpha.sample #=> ["", "", "", "H", "i", "Nxc", "gPfIt", "KpGRCl", "BjuiQE", "FCnfPkr"]
+  #   string_numeric.sample #=> ["", "0", "16", "5", "277"]
   #
   def string_numeric
     fmap(array(char_numeric)) do |char_array|
