@@ -8,6 +8,13 @@ describe 'Radagen' do
     expect(Radagen::VERSION).not_to be nil
   end
 
+  it 'checks if it is a Radagen::Generator with #gen?' do
+    class NotAGen; end
+
+    expect(gen?(some_of(string_alpha, string_alphanumeric))).to be_truthy
+    expect(gen?(NotAGen)).to be_falsey
+  end
+
   it 'can be sampled for interactive exploration' do
     hash_generator = hash_map(symbol, identity(80))
 
@@ -21,11 +28,9 @@ describe 'Radagen' do
     end
   end
 
-  it '#to_enum can take a size_min and size_max' do
-    aggregate_failures do
-      string_ascii.to_enum(size_min: 300, size_max: 500).take(500).each do |str|
-        expect(str.length).to be <= 500
-      end
+  it '#to_enum can take a size_min and size_max', :aggregate_failures do
+    string_ascii.to_enum(size_min: 300, size_max: 500).take(500).each do |str|
+      expect(str.length).to be <= 500
     end
   end
 
@@ -77,7 +82,7 @@ describe 'Radagen' do
   end
 
   it 'can expose the size value to a function with #scale' do
-    #really a convenience generator for interacting with a size value that will be passed to the provided generator
+    # a convenience generator for interacting with a size value that will be passed to the provided generator
     scaled_strs = scale(string_numeric) do |size|
       size * 5
     end
@@ -263,7 +268,7 @@ describe 'Radagen' do
 
     characters.each do |name, gen, range|
       aggregate_failures("while checking #{name}") do
-        gen.to_enum.take(100).each do |c|
+        gen.to_enum.take(200).each do |c|
           expect(range.to_a).to include(c.ord)
         end
       end
@@ -271,49 +276,66 @@ describe 'Radagen' do
 
   end
 
-  it 'can produce type 4 UUID strings' do
-    uuids = uuid.sample(60)
-
-    expect(uuids.map { |s| s[14] }).to all match('4')
-    expect(uuids.map { |s| s[19] }).to include('9', '8', 'a', 'b')
-  end
-
-  it 'can produce fixnums with #fixnum' do
-    aggregate_failures do
-      fixnum.to_enum.take(200).each do |f|
-        expect(f).to be_instance_of(Fixnum)
-      end
+  it 'can produce type 4 UUID strings', :aggregate_failures do
+    uuid.to_enum.take(400).each do |uuid|
+      expect(uuid.length).to match(36)
+      expect(uuid[14]).to match('4')
+      expect(['9', '8', 'a', 'b']).to include(uuid[19])
     end
   end
 
-  it  'can produce positive fixnums with #fixnum_pos' do
-    aggregate_failures do
-      fixnum_pos.to_enum.take(200) do |f|
-        expect(f).to be_instance_of(Float).and be_positive?
-      end
+  it 'can produce fixnums with #fixnum', :aggregate_failures do
+    fixnum.to_enum.take(400).each do |f|
+      expect(f).to be_instance_of(Fixnum)
     end
   end
 
-  it 'can produce negative fixnums with #fixnum_neg' do
-    aggregate_failures do
-      fixnum_neg.to_enum.take(200) do |f|
-        expect(f).to be_instance_of(Float).and be_negative?
-      end
+  it 'can produce positive fixnums with #fixnum_pos', :aggregate_failures do
+    fixnum_pos.to_enum.take(400) do |f|
+      expect(f).to be_instance_of(Fixnum).and be_positive?
     end
   end
 
-  it 'can produce floats with #float' do
-    aggregate_failures do
-      float.to_enum.take(200).each do |f|
-        expect(f).to be_instance_of(Float)
-      end
+  it 'can produce negative fixnums with #fixnum_neg', :aggregate_failures do
+    fixnum_neg.to_enum.take(400) do |f|
+      expect(f).to be_instance_of(Fixnum).and be_negative?
     end
   end
 
-  it 'can produce rational numbers with #rational' do
+  it 'can produce floats with #float', :aggregate_failures do
+    float.to_enum.take(400).each do |f|
+      expect(f).to be_instance_of(Float)
+    end
+  end
+
+  it 'can produce rational numbers with #rational', :aggregate_failures do
+    rational.to_enum.take(400).each do |r|
+      expect(r).to be_instance_of(Rational)
+    end
+  end
+
+  it 'can produce values at the correct frequency with #frequency' do
+    sample_size = 100000
+    gen = frequency({ rational => 3, string_alpha => 2, fixnum => 1 })
+
+    sample_freq = gen.to_enum.take(sample_size).each_with_object(Hash.new(0)) do |v, hash|
+      hash[v.class] += 1
+    end
+
     aggregate_failures do
-      rational.to_enum.take(200).each do |r|
-        expect(r).to be_instance_of(Rational)
+      expect((sample_freq[Rational].to_f/sample_size.to_f).round(2)).to match(a_value_within(0.02).of(0.5))
+      expect((sample_freq[String].to_f/sample_size.to_f).round(2)).to match(a_value_within(0.02).of(0.33))
+      expect((sample_freq[Fixnum].to_f/sample_size.to_f).round(2)).to match(a_value_within(0.02).of(0.17))
+    end
+  end
+
+  it 'can take a collection of values and return a reordered collection with #shuffle' do
+    coll = [:this, :that, :the, :other, 'more', {:value => 'account'}]
+
+    aggregate_failures do
+      shuffle(coll).to_enum.take(100).each do |v|
+        expect(v).to include(*coll)
+        expect(v.length).to eq(v.length)
       end
     end
   end

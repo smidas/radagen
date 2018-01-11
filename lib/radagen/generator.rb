@@ -45,8 +45,8 @@ module Radagen
     #   string_alpha.gen(200, 45362642634632684368) => "IaxBvRLxDIvLBhKezMdMmVZBCGzSJZvVjHkcLHsEchCpZWOmLAUQ"
     #
     def gen(size=30, seed=Random.new_seed)
-      prng = Random.new(seed)
-      @gen_proc.call(prng, size)
+      prng = prng(seed)
+      self.call(prng, size)
     end
 
     # Create a lazy enumerable of generator values. Size cycles from *size_min* to *size_max*
@@ -64,11 +64,17 @@ module Radagen
     def to_enum(opts={})
       default_opts = {size_min: 0, size_max: 300, seed: Random.new_seed}
       size_min, size_max, seed = default_opts.merge(opts).values_at(:size_min, :size_max, :seed)
-      prng = Random.new(seed)
+      prng = prng(seed)
 
       (size_min...size_max).cycle.lazy.map do |size|
         @gen_proc.call(prng, size)
       end
+    end
+
+    private
+
+    def prng(seed)
+      Random.new(seed)
     end
 
   end
