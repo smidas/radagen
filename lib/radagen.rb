@@ -1,3 +1,4 @@
+require 'radagen/version'
 require 'radagen/generator'
 
 module Radagen
